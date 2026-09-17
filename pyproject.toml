@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abr-reproduction"
+version = "0.1.0"
+description = "Minimal reproducible implementation of ambiguity-aware branch routing"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.23",
+  "torch>=1.13",
+]
+
+[tool.setuptools.packages.find]
+include = ["abr_reproduction*"]
+

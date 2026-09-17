@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this implementation, please cite the associated manuscript."
+title: "Budgeted Candidate Allocation for Identifier-Based Generative Image Retrieval"
+type: software
+authors:
+  - family-names: Ren
+    given-names: Jian-Xin
+  - family-names: Zhao
+    given-names: Ming-Bo
+  - family-names: Zhang
+    given-names: Zhao
+  - family-names: Fan
+    given-names: Jicong
+version: 0.1.0
+date-released: 2026-09-17
+repository-code: "https://github.com/dhujinyun-netizen/ABR-minimal-reproduction"
+
