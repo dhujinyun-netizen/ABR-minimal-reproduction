@@ -2,7 +2,7 @@
 
 from .identifier_index import IdentifierTable
 from .decoder import ABRDecoder, Candidate, DecodeResult
-from .losses import ABRTrainingLoss
+from .losses import RecoveryTrainingLoss, RoutingTrainingLoss
 from .ddcap_adapter import DDCapRecoveryAdapter, PreparedDDCapQuery
 
 __all__ = [
@@ -10,7 +10,8 @@ __all__ = [
     "ABRDecoder",
     "Candidate",
     "DecodeResult",
-    "ABRTrainingLoss",
+    "RecoveryTrainingLoss",
+    "RoutingTrainingLoss",
     "DDCapRecoveryAdapter",
     "PreparedDDCapQuery",
 ]

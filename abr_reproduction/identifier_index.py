@@ -168,16 +168,33 @@ class IdentifierTable:
         self,
         image_labels: Sequence[object],
         target_label: object,
+        exclude_image_index: Optional[int] = None,
     ) -> int:
-        """Return buckets containing at least one image with ``target_label``."""
+        """Return buckets containing at least one relevant image with target_label.
+
+        If ``exclude_image_index`` is provided, that image is excluded when
+        constructing the relevance mask, matching self-exclusion retrieval
+        protocols.
+        """
         if len(image_labels) != len(self.image_to_bucket):
             raise ValueError("image_labels must contain one label per gallery image")
+        if exclude_image_index is not None:
+            if (
+                exclude_image_index < 0
+                or exclude_image_index >= len(self.image_to_bucket)
+            ):
+                raise IndexError("exclude_image_index is out of range")
         mask = 0
         for image_index, label in enumerate(image_labels):
+            if (
+                exclude_image_index is not None
+                and image_index == exclude_image_index
+            ):
+                continue
             if label == target_label:
                 mask |= 1 << int(self.image_to_bucket[image_index])
         if mask == 0:
-            raise ValueError("target_label does not occur in the gallery")
+            raise ValueError("no retrieval-relevant image remains for target_label")
         return mask
 
     def _check_position(self, position: int) -> None:

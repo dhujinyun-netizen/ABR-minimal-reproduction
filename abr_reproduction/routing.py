@@ -39,11 +39,11 @@ class HeuristicRoutingScorer:
 
 
 class RoutingMLPScorer:
-    """Configurable two-layer routing MLP.
+    """Routing MLP used by the revised ABR method.
 
-    The supplied paper source does not specify the original hidden width,
-    activation, or dropout.  The default here is explicit: 6 -> 32 -> 1,
-    GELU, no dropout.  A checkpoint can override the learned weights.
+    Architecture: 6 -> 32 -> 1 with GELU activation and zero dropout.
+    Routing features are normalized within each deduplicated successor pool
+    before scoring.
     """
 
     expects_normalized = True

@@ -1,4 +1,4 @@
-"""Losses in the paper's ABR training objective."""
+"""Separate stage-1 recovery and stage-2 routing objectives."""
 
 from __future__ import annotations
 
@@ -67,19 +67,12 @@ def routing_pairwise_loss(
     return (losses * weights).sum() / denominator
 
 
-class ABRTrainingLoss(nn.Module):
-    """Weighted L_tok + L_loc + L_route with the paper's defaults."""
+class RecoveryTrainingLoss(nn.Module):
+    """Stage-1 recovery objective: L_tok + 0.5 L_loc."""
 
-    def __init__(
-        self,
-        lambda_tok: float = 1.0,
-        lambda_loc: float = 0.5,
-        lambda_route: float = 0.1,
-    ) -> None:
+    def __init__(self, lambda_loc: float = 0.5) -> None:
         super().__init__()
-        self.lambda_tok = float(lambda_tok)
         self.lambda_loc = float(lambda_loc)
-        self.lambda_route = float(lambda_route)
 
     def forward(
         self,
@@ -87,8 +80,6 @@ class ABRTrainingLoss(nn.Module):
         targets: torch.Tensor,
         masked_positions: torch.Tensor,
         legal_token_mask: Optional[torch.Tensor] = None,
-        positive_route_scores: Optional[torch.Tensor] = None,
-        negative_route_scores: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         token = masked_token_loss(logits, targets, masked_positions)
         local = logits.sum() * 0.0
@@ -96,19 +87,24 @@ class ABRTrainingLoss(nn.Module):
             local = legal_choice_loss(
                 logits, targets, legal_token_mask, masked_positions
             )
-        route = logits.sum() * 0.0
-        if positive_route_scores is not None or negative_route_scores is not None:
-            if positive_route_scores is None or negative_route_scores is None:
-                raise ValueError("both positive and negative route scores are required")
-            route = routing_pairwise_loss(
-                positive_route_scores, negative_route_scores
-            )
-        total = (
-            self.lambda_tok * token
-            + self.lambda_loc * local
-            + self.lambda_route * route
+        total = token + self.lambda_loc * local
+        return {"loss": total, "tok": token, "loc": local}
+
+
+class RoutingTrainingLoss(nn.Module):
+    """Stage-2 pairwise routing objective."""
+
+    def forward(
+        self,
+        positive_scores: torch.Tensor,
+        negative_scores: torch.Tensor,
+        weights: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        return routing_pairwise_loss(
+            positive_scores,
+            negative_scores,
+            weights=weights,
         )
-        return {"loss": total, "tok": token, "loc": local, "route": route}
 
 
 def _validate_token_tensors(

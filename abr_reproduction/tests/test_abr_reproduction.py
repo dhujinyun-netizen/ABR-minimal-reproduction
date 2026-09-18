@@ -12,7 +12,11 @@ from abr_reproduction.corruption import mask_probability
 from abr_reproduction.ddcap_adapter import DDCapRecoveryAdapter
 from abr_reproduction.decoder import ABRDecoder
 from abr_reproduction.identifier_index import IdentifierTable
-from abr_reproduction.losses import ABRTrainingLoss, legal_choice_loss
+from abr_reproduction.losses import (
+    RecoveryTrainingLoss,
+    RoutingTrainingLoss,
+    legal_choice_loss,
+)
 from abr_reproduction.smoke_test import ToyRecovery
 from abr_reproduction.train_routing import save_mined_pairs, train_pairs
 
@@ -157,25 +161,28 @@ class ABRReproductionTests(unittest.TestCase):
         )
         torch.testing.assert_close(loss, expected)
 
-    def test_weighted_training_objective(self) -> None:
+    def test_recovery_training_objective(self) -> None:
         logits = torch.tensor([[[3.0, 0.0], [0.0, 3.0]]], requires_grad=True)
         targets = torch.tensor([[0, 1]])
         masked = torch.tensor([[True, True]])
         legal = torch.ones_like(logits, dtype=torch.bool)
-        positive = torch.tensor([2.0])
-        negative = torch.tensor([0.0])
-        losses = ABRTrainingLoss()(
+        losses = RecoveryTrainingLoss()(
             logits,
             targets,
             masked,
             legal_token_mask=legal,
-            positive_route_scores=positive,
-            negative_route_scores=negative,
         )
-        expected = losses["tok"] + 0.5 * losses["loc"] + 0.1 * losses["route"]
+        expected = losses["tok"] + 0.5 * losses["loc"]
         torch.testing.assert_close(losses["loss"], expected)
         losses["loss"].backward()
         self.assertIsNotNone(logits.grad)
+
+    def test_routing_training_objective(self) -> None:
+        positive = torch.tensor([2.0, 1.5])
+        negative = torch.tensor([0.0, 0.5])
+        loss = RoutingTrainingLoss()(positive, negative)
+        expected = torch.nn.functional.softplus(-(positive - negative)).mean()
+        torch.testing.assert_close(loss, expected)
 
     def test_paper_ddcap_adapter_contract(self) -> None:
         model = FakeDDCap(time_step=128)
@@ -235,6 +242,17 @@ class ABRReproductionTests(unittest.TestCase):
         )
         self.assertTrue(result.route_pairs)
         self.assertEqual(len(result.route_pairs), len(result.route_pair_weights))
+
+    def test_label_consistent_mask_excludes_self(self) -> None:
+        labels = [7, 7, 8, 9, 10, 10]
+        positive_mask = self.table.bucket_mask_for_label(
+            labels,
+            target_label=7,
+            exclude_image_index=0,
+        )
+        buckets = set(self.table.bucket_indices(positive_mask).tolist())
+        self.assertNotIn(int(self.table.image_to_bucket[0]), buckets)
+        self.assertIn(int(self.table.image_to_bucket[1]), buckets)
 
     def test_ranked_image_expansion(self) -> None:
         target = self.table.bucket_identifiers[0]
