@@ -1,2 +1,3 @@
-# ABR-minimal-reproduction
-The ABR source code will be released here in the future.
+# ABR
+
+The ABR source code will be made publicly available in this repository in the future.
